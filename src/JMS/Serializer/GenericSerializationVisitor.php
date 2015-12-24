@@ -153,6 +153,45 @@ abstract class GenericSerializationVisitor extends AbstractVisitor
         }
     }
 
+    public function startVisitingArray()
+    {
+        if (null === $this->root) {
+            $this->root = array();
+        }
+        $this->dataStack->push($this->data);
+        $this->data = array();
+    }
+
+    public function visitArrayProperty(PropertyMetadata $metadata, $data, Context $context)
+    {
+        $v = isset($data[$metadata->name]) ? $data[$metadata->name] : null;
+        $v = $this->navigator->accept($v, $metadata->type, $context);
+        if (null === $v && !$context->shouldSerializeNull()) {
+            return;
+        }
+        $k = $this->namingStrategy->translateName($metadata);
+
+        if ($metadata->inline) {
+            if (is_array($v)) {
+                $this->data = array_merge($this->data, $v);
+            }
+        } else {
+            $this->data[$k] = $v;
+        }
+    }
+
+    public function endVisitingArray()
+    {
+        $rs = $this->data;
+        $this->data = $this->dataStack->pop();
+
+        if (is_array($this->root) && 0 === $this->dataStack->count()) {
+            $this->root = $rs;
+        }
+
+        return $rs;
+    }
+
     /**
      * Allows you to add additional data to the current object/root element.
      *

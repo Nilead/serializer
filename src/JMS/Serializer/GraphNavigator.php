@@ -107,6 +107,12 @@ final class GraphNavigator
         else if ($context instanceof SerializationContext && null === $data) {
             $type = array('name' => 'NULL', 'params' => array());
         }
+        else if (isset($type['name']) && 'ArrayCollection' === $type['name']) {
+            $type = array('name' => 'array', 'params' => $type['params']);
+        }
+        else if (isset($type['name']) && 'array' != $type['name'] && is_array($data)) {
+            $type = array('name' => 'array', 'class' => $type['name'], 'params' => array());
+        }
 
         switch ($type['name']) {
             case 'NULL':
@@ -126,7 +132,34 @@ final class GraphNavigator
                 return $visitor->visitDouble($data, $type, $context);
 
             case 'array':
-                return $visitor->visitArray($data, $type, $context);
+                if ( ! isset($type['class'])) {
+                    return $visitor->visitArray($data, $type, $context);
+                }
+
+                if (null !== $this->dispatcher && $this->dispatcher->hasListeners('serializer.pre_serialize', $type['class'], $context->getFormat())) {
+                    $this->dispatcher->dispatch('serializer.pre_serialize', $type['class'], $context->getFormat(), $event = new PreSerializeEvent($context, $data, $type));
+                }
+
+                $exclusionStrategy = $context->getExclusionStrategy();
+
+                $metadata = $this->metadataFactory->getMetadataForClass($type['class']);
+
+                $visitor->startVisitingArray();
+
+                foreach ($metadata->propertyMetadata as $propertyMetadata) {
+                    if (null !== $exclusionStrategy && $exclusionStrategy->shouldSkipProperty($propertyMetadata, $context)) {
+                        continue;
+                    }
+                    $context->pushPropertyMetadata($propertyMetadata);
+                    $visitor->visitArrayProperty($propertyMetadata, $data, $context);
+                    $context->popPropertyMetadata();
+                }
+
+                if (null !== $this->dispatcher && $this->dispatcher->hasListeners('serializer.post_serialize', $type['class'], $context->getFormat())) {
+                    $this->dispatcher->dispatch('serializer.post_serialize', $type['class'], $context->getFormat(), new ObjectEvent($context, $data, $type));
+                }
+
+                return $visitor->endVisitingArray();
 
             case 'resource':
                 $msg = 'Resources are not supported in serialized data.';

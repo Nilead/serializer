@@ -71,6 +71,13 @@ class Serializer implements SerializerInterface
         $this->navigator = new GraphNavigator($this->factory, $this->handlerRegistry, $this->objectConstructor, $this->dispatcher);
     }
 
+    public function setType($type)
+    {
+        $this->type = $type;
+
+        return $this;
+    }
+
     public function serialize($data, $format, SerializationContext $context = null)
     {
         if (null === $context) {
