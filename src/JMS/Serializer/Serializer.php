@@ -47,6 +47,8 @@ class Serializer implements SerializerInterface
 
     private $navigator;
 
+    private $type = null;
+
     /**
      * Constructor.
      *
@@ -86,7 +88,9 @@ class Serializer implements SerializerInterface
 
         return $this->serializationVisitors->get($format)
             ->map(function(VisitorInterface $visitor) use ($context, $data, $format) {
-                $this->visit($visitor, $context, $visitor->prepare($data), $format);
+                $this->visit($visitor, $context, $visitor->prepare($data), $format, $this->type ? $this->type : null);
+
+                $this->type = null;
 
                 return $visitor->getResult();
             })

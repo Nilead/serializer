@@ -107,10 +107,10 @@ final class GraphNavigator
         else if ($context instanceof SerializationContext && null === $data) {
             $type = array('name' => 'NULL', 'params' => array());
         }
-        else if (isset($type['name']) && 'ArrayCollection' === $type['name']) {
+        else if ($context instanceof SerializationContext && isset($type['name']) && 'ArrayCollection' === $type['name']) {
             $type = array('name' => 'array', 'params' => $type['params']);
         }
-        else if (isset($type['name']) && 'array' != $type['name'] && is_array($data)) {
+        else if ($context instanceof SerializationContext && isset($type['name']) && 'array' != $type['name'] && is_array($data)) {
             $type = array('name' => 'array', 'class' => $type['name'], 'params' => array());
         }
 
