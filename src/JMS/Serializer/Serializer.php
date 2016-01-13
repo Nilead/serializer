@@ -124,21 +124,21 @@ class Serializer implements SerializerInterface
      *
      * @return array
      */
-    public function toArray($data, SerializationContext $context = null)
+    public function toArray($data, SerializationContext $context = null, $strict = true)
     {
         if (null === $context) {
             $context = new SerializationContext();
         }
 
         return $this->serializationVisitors->get('json')
-            ->map(function(JsonSerializationVisitor $visitor) use ($context, $data) {
+            ->map(function(JsonSerializationVisitor $visitor) use ($context, $data, $strict) {
                 $this->visit($visitor, $context, $data, 'json', $this->type ? $this->type : null);
 
                 $this->type = null;
 
                 $result = $this->convertArrayObjects($visitor->getRoot());
 
-                if ( ! is_array($result)) {
+                if ($strict && ! is_array($result)) {
                     throw new RuntimeException(sprintf(
                         'The input data of type "%s" did not convert to an array, but got a result of type "%s".',
                         is_object($data) ? get_class($data) : gettype($data),
