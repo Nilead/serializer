@@ -136,8 +136,19 @@ final class GraphNavigator
                     return $visitor->visitArray($data, $type, $context);
                 }
 
-                if (null !== $this->dispatcher && $this->dispatcher->hasListeners('serializer.pre_serialize', $type['class'], $context->getFormat())) {
-                    $this->dispatcher->dispatch('serializer.pre_serialize', $type['class'], $context->getFormat(), $event = new PreSerializeEvent($context, $data, $type));
+                // Trigger pre-serialization callbacks, and listeners if they exist.
+                // Dispatch pre-serialization event before handling data to have ability change type in listener
+                if ($context instanceof SerializationContext) {
+                    if (null !== $this->dispatcher && $this->dispatcher->hasListeners('serializer.pre_serialize', $type['name'], $context->getFormat())) {
+                        $this->dispatcher->dispatch('serializer.pre_serialize', $type['class'], $context->getFormat(), $event = new PreSerializeEvent($context, $data, $type));
+                        $type = $event->getType();
+                    }
+                } elseif ($context instanceof DeserializationContext) {
+                    if (null !== $this->dispatcher && $this->dispatcher->hasListeners('serializer.pre_deserialize', $type['name'], $context->getFormat())) {
+                        $this->dispatcher->dispatch('serializer.pre_deserialize', $type['class'], $context->getFormat(), $event = new PreDeserializeEvent($context, $data, $type));
+                        $type = $event->getType();
+                        $data = $event->getData();
+                    }
                 }
 
                 $exclusionStrategy = $context->getExclusionStrategy();

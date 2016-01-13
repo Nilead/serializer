@@ -132,7 +132,10 @@ class Serializer implements SerializerInterface
 
         return $this->serializationVisitors->get('json')
             ->map(function(JsonSerializationVisitor $visitor) use ($context, $data) {
-                $this->visit($visitor, $context, $data, 'json');
+                $this->visit($visitor, $context, $data, 'json', $this->type ? $this->type : null);
+
+                $this->type = null;
+
                 $result = $this->convertArrayObjects($visitor->getRoot());
 
                 if ( ! is_array($result)) {
